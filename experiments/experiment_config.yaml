@@ -1,0 +1,43 @@
+# Experiment Configuration File
+
+# Training Parameters
+epochs: 50
+batch_size: 128
+learning_rate: 0.001
+optimizer: 'adam'
+validation_split: 0.1
+
+# Datasets to test
+datasets:
+  - 'mnist'
+  - 'fashion_mnist'
+  - 'cifar10'
+
+# Models to test
+models:
+  - 'alexnet_small'
+  - 'vgg16_small'
+  - 'resnet18'
+  - 'efficientnet_small'
+
+# Activation functions to test
+activations:
+  - 'relu'
+  - 'sigmoid'
+  - 'tanh'
+  - 'swish'
+  - 'gelu'
+  - 'mish'
+  # Add your custom activation here
+  # - 'custom_new'
+
+# Output directory
+save_dir: 'results'
+
+# Optional: Specific experiment configurations
+# Use this to override parameters for specific combinations
+specific_configs:
+  # Example:
+  # cifar10_resnet18:
+  #   epochs: 100
+  #   learning_rate: 0.0001
