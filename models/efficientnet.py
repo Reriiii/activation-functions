@@ -88,6 +88,21 @@ class MBConvBlock(keras.layers.Layer):
             x = keras.layers.add([x, inputs])
         
         return x
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "filters": self.filters,
+            "kernel_size": self.kernel_size,
+            "strides": self.strides,
+            "expand_ratio": self.expand_ratio,
+            "activation": self.activation_name,
+        })
+        return config
+    
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
 
 
 class EfficientNet(BaseModel):

@@ -140,10 +140,55 @@ class ExperimentRunner:
         
         return results
     
+    def _scan_completed_experiments_strict(self):
+            """
+            Kiểm tra nghiêm ngặt 3 điều kiện.
+            Chỉ return thí nghiệm nào có đủ: Model (.h5) + Log (.log) + Plot (.png)
+            """
+            completed = set()
+            
+            base_dir = self.config['save_dir']
+            models_dir = os.path.join(base_dir, 'models')
+            logs_dir = os.path.join(base_dir, 'logs')
+            plots_dir = os.path.join(base_dir, 'plots')
+
+            print(f"[INFO] Strict Scanning (Model + Log + Plot) in {base_dir}...")
+
+            if not os.path.exists(models_dir):
+                return completed
+
+            # Duyệt qua danh sách thư mục trong models
+            for exp_name in os.listdir(models_dir):
+                
+                # 1. Kiểm tra MODEL: results/models/<exp_name>/best_model.h5
+                model_path = os.path.join(models_dir, exp_name, 'best_model.h5')
+                if not os.path.isfile(model_path):
+                    continue # Thiếu model -> Bỏ qua
+
+                # 2. Kiểm tra LOG: results/logs/<exp_name>/training.log
+                log_path = os.path.join(logs_dir, exp_name, 'training.log')
+                if not os.path.isfile(log_path):
+                    continue # Thiếu log -> Bỏ qua
+
+                # 3. Kiểm tra PLOT: results/plots/<exp_name>_history.png
+                # Lưu ý: Dựa vào file tree bạn gửi, plots nằm thẳng trong folder plots, ko có sub-folder
+                plot_path = os.path.join(plots_dir, f"{exp_name}_history.png")
+                if not os.path.isfile(plot_path):
+                    continue # Thiếu plot -> Bỏ qua
+
+                # Nếu đủ cả 3 -> OK
+                completed.add(exp_name)
+            
+            return completed
+        
     def run_all_experiments(self):
         """Run all experiments defined in config"""
         
         all_results = []
+        
+        completed_experiments = self._scan_completed_experiments_strict()
+        
+        print(f"\n[INFO] RECOVERY MODE: Found {len(completed_experiments)} completed experiments on disk.")
         
         datasets = self.config['datasets']
         models = self.config['models']
@@ -160,8 +205,16 @@ class ExperimentRunner:
             for model in models:
                 for activation in activations:
                     current += 1
+                    
+                    experiment_name = f"{dataset}_{model}_{activation}"
+                    
+                    if experiment_name in completed_experiments:
+                        print(f"Progress: {current}/{total_experiments} - [SKIP] {experiment_name}")
+                        continue
+                    
                     print(f"\nProgress: {current}/{total_experiments}")
                     
+
                     try:
                         results = self.run_single_experiment(dataset, model, activation)
                         all_results.append(results)
