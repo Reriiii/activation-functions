@@ -18,7 +18,9 @@ models:
   - 'alexnet_small'
   - 'vgg16_small'
   - 'resnet18'
+  - 'resnet50'
   - 'efficientnet_small'
+  - 'efficientnetb1'
 
 # Activation functions to test
 activations:
@@ -28,16 +30,17 @@ activations:
   - 'swish'
   - 'gelu'
   - 'mish'
-  # Add your custom activation here
-  # - 'custom_new'
+  - 'softsign_like'
+  - 'xtanh'
+  - 'sinusoidal'
+  - 'rsqrt_unit'
+  - 'softplus_relu'
+  - 'erf_act'
+  - 'snake_act'
+  - 'bent_identity'
+  - 'log_linear'
+  - 'hard_mish'
+  - 'tanh_shrink'
 
 # Output directory
 save_dir: 'results'
-
-# Optional: Specific experiment configurations
-# Use this to override parameters for specific combinations
-specific_configs:
-  # Example:
-  # cifar10_resnet18:
-  #   epochs: 100
-  #   learning_rate: 0.0001
