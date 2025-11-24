@@ -14,8 +14,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 from data.data_loader import DataLoader
 from models.alexnet import AlexNet, AlexNetSmall
 from models.vgg16 import VGG16, VGG16Small
-from models.resnet import ResNet18, ResNet34
-from models.efficientnet import EfficientNetSmall
+from models.resnet import ResNet18, ResNet34, ResNet50
+from models.efficientnet import EfficientNetSmall, EfficientNetB1
 from training.trainer import Trainer, ExperimentTracker
 from evaluation.visualization import Visualizer
 
@@ -46,7 +46,9 @@ class ExperimentRunner:
             'vgg16_small': VGG16Small,
             'resnet18': ResNet18,
             'resnet34': ResNet34,
+            'resnet50': ResNet50,
             'efficientnet_small': EfficientNetSmall,
+            'efficientnetb1': EfficientNetB1
         }
         
         model_class = models.get(model_name.lower())
@@ -141,54 +143,73 @@ class ExperimentRunner:
         return results
     
     def _scan_completed_experiments_strict(self):
-            """
-            Kiểm tra nghiêm ngặt 3 điều kiện.
-            Chỉ return thí nghiệm nào có đủ: Model (.h5) + Log (.log) + Plot (.png)
-            """
-            completed = set()
-            
-            base_dir = self.config['save_dir']
-            models_dir = os.path.join(base_dir, 'models')
-            logs_dir = os.path.join(base_dir, 'logs')
-            plots_dir = os.path.join(base_dir, 'plots')
+        """
+        Kiểm tra nghiêm ngặt 3 điều kiện.
+        Chỉ return thí nghiệm nào có đủ: Model (.h5) + Log (.log) + Plot (.png)
+        """
+        completed = set()
+        
+        base_dir = self.config['save_dir']
+        models_dir = os.path.join(base_dir, 'models')
+        logs_dir = os.path.join(base_dir, 'logs')
+        plots_dir = os.path.join(base_dir, 'plots')
 
-            print(f"[INFO] Strict Scanning (Model + Log + Plot) in {base_dir}...")
+        print(f"[INFO] Strict Scanning (Model + Log + Plot) in {base_dir}...")
 
-            if not os.path.exists(models_dir):
-                return completed
-
-            # Duyệt qua danh sách thư mục trong models
-            for exp_name in os.listdir(models_dir):
-                
-                # 1. Kiểm tra MODEL: results/models/<exp_name>/best_model.h5
-                model_path = os.path.join(models_dir, exp_name, 'best_model.h5')
-                if not os.path.isfile(model_path):
-                    continue # Thiếu model -> Bỏ qua
-
-                # 2. Kiểm tra LOG: results/logs/<exp_name>/training.log
-                log_path = os.path.join(logs_dir, exp_name, 'training.log')
-                if not os.path.isfile(log_path):
-                    continue # Thiếu log -> Bỏ qua
-
-                # 3. Kiểm tra PLOT: results/plots/<exp_name>_history.png
-                # Lưu ý: Dựa vào file tree bạn gửi, plots nằm thẳng trong folder plots, ko có sub-folder
-                plot_path = os.path.join(plots_dir, f"{exp_name}_history.png")
-                if not os.path.isfile(plot_path):
-                    continue # Thiếu plot -> Bỏ qua
-
-                # Nếu đủ cả 3 -> OK
-                completed.add(exp_name)
-            
+        if not os.path.exists(models_dir):
             return completed
+
+        # Duyệt qua danh sách thư mục trong models
+        for exp_name in os.listdir(models_dir):
+            
+            # 1. Kiểm tra MODEL: results/models/<exp_name>/best_model.h5
+            model_path = os.path.join(models_dir, exp_name, 'best_model.h5')
+            if not os.path.isfile(model_path):
+                continue # Thiếu model -> Bỏ qua
+
+            # 2. Kiểm tra LOG: results/logs/<exp_name>/training.log
+            log_path = os.path.join(logs_dir, exp_name, 'training.log')
+            if not os.path.isfile(log_path):
+                continue # Thiếu log -> Bỏ qua
+
+            # 3. Kiểm tra PLOT: results/plots/<exp_name>_history.png
+            # Lưu ý: Dựa vào file tree bạn gửi, plots nằm thẳng trong folder plots, ko có sub-folder
+            plot_path = os.path.join(plots_dir, f"{exp_name}_history.png")
+            if not os.path.isfile(plot_path):
+                continue # Thiếu plot -> Bỏ qua
+
+            # Nếu đủ cả 3 -> OK
+            completed.add(exp_name)
+            
+        return completed
         
     def run_all_experiments(self):
         """Run all experiments defined in config"""
         
+        results_path = os.path.join(self.config['save_dir'], 'all_results.csv')
+        
         all_results = []
+        completed_experiments = set()
         
-        completed_experiments = self._scan_completed_experiments_strict()
+        if os.path.exists(results_path):
+            try:
+                # Đọc file CSV hiện tại
+                existing_df = pd.read_csv(results_path)
+                
+                # Chuyển đổi thành list of dicts để tí nữa append cái mới vào
+                all_results = existing_df.to_dict('records')
+                
+                # Tạo danh sách các tên đã chạy để check skip
+                if 'experiment_name' in existing_df.columns:
+                    completed_experiments = set(existing_df['experiment_name'].tolist())
+                
+                print(f"\n[RESUME] Loaded {len(all_results)} records.")
+            except Exception as e:
+                print(f"[WARNING]: {e}. Create new file.")
+                all_results = []
         
-        print(f"\n[INFO] RECOVERY MODE: Found {len(completed_experiments)} completed experiments on disk.")
+        # completed_experiments = self._scan_completed_experiments_strict()
+        # print(f"\n[INFO] RECOVERY MODE: Found {len(completed_experiments)} completed experiments on disk.")
         
         datasets = self.config['datasets']
         models = self.config['models']
@@ -214,6 +235,8 @@ class ExperimentRunner:
                     
                     print(f"\nProgress: {current}/{total_experiments}")
                     
+                    results_df = pd.DataFrame(all_results)
+                    results_df.to_csv(f"{self.config['save_dir']}/all_results.csv", index=False)
 
                     try:
                         results = self.run_single_experiment(dataset, model, activation)
