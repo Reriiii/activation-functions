@@ -39,9 +39,18 @@ def get_activation(name):
         return keras.layers.PReLU()
     elif name == 'mish':
         return mish
-    elif name == 'custom_new':
-        # Your new activation function here
-        return custom_new_activation
+    elif name == 'softsign_like':
+        return softsign_like
+    elif name == 'xtanh':
+        return xtanh
+    elif name == 'sinusoidal':
+        return sinusoidal
+    elif name == 'rsqrt_unit':
+        return rsqrt_unit
+    elif name == 'softplus_relu':
+        return softplus_relu
+    elif name == 'erf_act':
+        return erf_act
     else:
         raise ValueError(f"Activation function {name} not supported")
 
@@ -77,6 +86,83 @@ def custom_new_activation(x):
     beta = 1.5  # You can make this learnable
     return x * tf.nn.sigmoid(beta * x)
 
+# 1. Softsign-like activation: x / (1 + |x|)
+@tf.function
+def softsign_like(x):
+    return x / (1.0 + tf.abs(x))
+
+
+# 2. x * tanh(x): smooth, stable, non-monotonic like Mish/Swish
+@tf.function
+def xtanh(x):
+    return x * tf.math.tanh(x)
+
+
+# 3. Sinusoidal function: sin(x)
+# Works like SIREN networks
+@tf.function
+def sinusoidal(x):
+    return tf.sin(x)
+
+
+# 4. x / sqrt(1 + x^2): smooth, bounded, stable gradient
+@tf.function
+def rsqrt_unit(x):
+    return x / tf.sqrt(1.0 + x * x)
+
+
+# 5. Softplus — smooth ReLU variant
+@tf.function
+def softplus_relu(x):
+    return tf.nn.softplus(x)
+
+
+# 6. erf(x) — smooth bell curve activation (GELU uses erf)
+@tf.function
+def erf_act(x):
+    return tf.math.erf(x)
+
+# 7. Snake Activation: x + sin(x)
+# Khắc phục điểm yếu của Sinusoidal cũ.
+# Nó thêm thành phần tuyến tính 'x' vào sin(x), giúp gradient không bao giờ bị triệt tiêu hoàn toàn.
+# Rất mạnh cho việc học các đặc trưng có tính chu kỳ (như texture trong ảnh).
+@tf.function
+def snake_act(x):
+    return x + tf.sin(x)
+
+# 8. Bent Identity: ((sqrt(x^2 + 1) - 1) / 2) + x
+# Hàm này "uốn cong" nhẹ quanh gốc tọa độ nhưng trở về tuyến tính khi x lớn.
+# Cực kỳ an toàn cho các mạng sâu (Deep ResNet) vì nó hành xử giống Identity function ở khoảng giá trị lớn, tránh vanishing gradient.
+@tf.function
+def bent_identity(x):
+    return ((tf.sqrt(x*x + 1.0) - 1.0) / 2.0) + x
+
+# 9. Log-Linear: x * ln(1 + |x|)
+# Một biến thể "nén" dữ liệu.
+# Nó tăng trưởng chậm hơn ReLU (Logarithmic growth).
+# Hữu ích khi dataset có nhiều ngoại lai (outliers) giá trị lớn gây nổ gradient, hàm này sẽ kìm hãm chúng lại.
+@tf.function
+def log_linear(x):
+    return x * tf.math.log(1.0 + tf.abs(x))
+
+# 10. Hard Mish: x * hard_tanh(softplus(x))
+# Phiên bản xấp xỉ của Mish nhưng tính toán nhanh hơn do loại bỏ bớt hàm exp đắt đỏ.
+# Sử dụng logic của MobileNetV3 để tối ưu tốc độ inference.
+@tf.function
+def hard_mish(x):
+    # Softplus xấp xỉ nhanh
+    sp = tf.nn.relu(x) + tf.math.log(1.0 + tf.exp(-tf.abs(x))) 
+    # Hard Tanh xấp xỉ: clip giá trị trong khoảng [-1, 1]
+    htanh = tf.clip_by_value(sp, -1.0, 1.0)
+    return x * htanh
+
+# 11. Penalized Tanh: tanh(x) - 0.2*x*x (chỉ ví dụ hệ số 0.2)
+# Hoặc biến thể tốt hơn: Tanh-Shrink: x - tanh(x)
+# Hàm này tập trung vào phần "dư" (residual) của tín hiệu. 
+# Tại x gần 0, giá trị rất nhỏ (phẳng), giúp mạng thưa (sparse) hơn.
+@tf.function
+def tanh_shrink(x):
+    return x - tf.math.tanh(x)
 
 class LearnableActivation(keras.layers.Layer):
     """
@@ -178,5 +264,10 @@ ACTIVATION_FUNCTIONS = {
     'selu': 'selu',
     'leaky_relu': 'leaky_relu',
     'mish': 'mish',
-    'custom_new': 'custom_new'
+    'softsign_like': 'softsign_like',
+    'xtanh': 'xtanh',
+    'sinusoidal': 'sinusoidal',
+    'rsqrt_unit': 'rsqrt_unit',
+    'softplus_relu': 'softplus_relu',
+    'erf_act': 'erf_act'
 }
