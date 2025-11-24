@@ -229,3 +229,69 @@ class EfficientNetSmall(BaseModel):
         
         self.model = keras.Model(inputs=inputs, outputs=outputs, name='EfficientNet-Small')
         return self.model
+
+class EfficientNetB1(BaseModel):
+    """
+    EfficientNet-B1 architecture (slightly larger than B0)
+    """
+    
+    def __init__(self, input_shape, num_classes, activation='swish'):
+        super().__init__(input_shape, num_classes, activation)
+        
+    def build_model(self):
+        """Build EfficientNet-B1"""
+        
+        inputs = keras.Input(shape=self.input_shape)
+        
+        # B1 uses 240x240 input
+        resize_to = 240
+        if self.input_shape[0] < resize_to:
+            x = keras.layers.Resizing(resize_to, resize_to)(inputs)
+        else:
+            x = inputs
+            
+        # If grayscale, convert to RGB
+        if self.input_shape[-1] == 1:
+            x = keras.layers.Conv2D(3, 1, padding='same')(x)
+        
+        act_fn = get_activation(self.activation)
+        
+        # Stem
+        x = keras.layers.Conv2D(32, 3, strides=2, padding='same', use_bias=False)(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Activation(act_fn)(x)
+        
+        # EfficientNet-B1 blocks (same as B0)
+        blocks_config = [
+            (16, 3, 1, 1, 1),   # Stage 1
+            (24, 3, 2, 6, 2),   # Stage 2
+            (40, 5, 2, 6, 2),   # Stage 3
+            (80, 3, 2, 6, 3),   # Stage 4
+            (112, 5, 1, 6, 3),  # Stage 5
+            (192, 5, 2, 6, 4),  # Stage 6
+            (320, 3, 1, 6, 1),  # Stage 7
+        ]
+        
+        for filters, kernel_size, strides, expand_ratio, repeats in blocks_config:
+            for i in range(repeats):
+                stride = strides if i == 0 else 1
+                x = MBConvBlock(
+                    filters=filters,
+                    kernel_size=kernel_size,
+                    strides=stride,
+                    expand_ratio=expand_ratio,
+                    activation=self.activation
+                )(x)
+        
+        # Head (B1 slightly bigger than B0)
+        x = keras.layers.Conv2D(1280, 1, padding='same', use_bias=False)(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Activation(act_fn)(x)
+        
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dropout(0.3)(x)   # B1 uses dropout=0.3
+        
+        outputs = keras.layers.Dense(self.num_classes, activation='softmax')(x)
+        
+        self.model = keras.Model(inputs=inputs, outputs=outputs, name='EfficientNet-B1')
+        return self.model
