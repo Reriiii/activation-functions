@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from data.data_loader import DataLoader
 from models.alexnet import AlexNet, AlexNetSmall
-from models.vgg16 import VGG16, VGG16Small
+from models.vgg import VGG11, VGG13, VGG16, VGG19
 from models.resnet import ResNet18, ResNet34, ResNet50
 from models.efficientnet import EfficientNetSmall, EfficientNetB1
 from training.trainer import Trainer, ExperimentTracker
@@ -42,8 +42,10 @@ class ExperimentRunner:
         models = {
             'alexnet': AlexNet,
             'alexnet_small': AlexNetSmall,
+            'vgg11': VGG11,
+            'vgg13': VGG13,
             'vgg16': VGG16,
-            'vgg16_small': VGG16Small,
+            'vgg19': VGG19,
             'resnet18': ResNet18,
             'resnet34': ResNet34,
             'resnet50': ResNet50,

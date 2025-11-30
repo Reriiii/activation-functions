@@ -9,18 +9,24 @@ validation_split: 0.1
 
 # Datasets to test
 datasets:
-  - 'mnist'
-  - 'fashion_mnist'
+  # - 'mnist'
+  # - 'fashion_mnist'
   - 'cifar10'
+  # - 'cifar100'
 
 # Models to test
 models:
-  - 'alexnet_small'
-  - 'vgg16_small'
+  # - 'alexnet_small'
+  # - 'vgg16_small'
+  # - 'efficientnet_small'
+  # - 'efficientnetb1'
   - 'resnet18'
   - 'resnet50'
-  - 'efficientnet_small'
-  - 'efficientnetb1'
+  - 'resnet34'
+  - 'vgg11'
+  - 'vgg13'
+  - 'vgg16'
+  - 'vgg19'
 
 # Activation functions to test
 activations:
@@ -29,18 +35,22 @@ activations:
   - 'tanh'
   - 'swish'
   - 'gelu'
-  - 'mish'
-  - 'softsign_like'
-  - 'xtanh'
-  - 'sinusoidal'
-  - 'rsqrt_unit'
-  - 'softplus_relu'
-  - 'erf_act'
-  - 'snake_act'
-  - 'bent_identity'
-  - 'log_linear'
-  - 'hard_mish'
-  - 'tanh_shrink'
+  # - 'softmax'
+  # - 'elu'
+  # - 'mish'
+  # - 'leaky_relu'
+  # - 'selu'
+  # - 'softsign_like'
+  # - 'xtanh'
+  # - 'sinusoidal'
+  # - 'rsqrt_unit'
+  # - 'softplus_relu'
+  # - 'erf_act'
+  # - 'snake_act'
+  # - 'bent_identity'
+  # - 'log_linear'
+  # - 'hard_mish'
+  # - 'tanh_shrink'
 
 # Output directory
-save_dir: 'results'
+save_dir: 'cifar10_results'
