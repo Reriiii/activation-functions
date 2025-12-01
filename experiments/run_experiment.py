@@ -15,6 +15,7 @@ from data.data_loader import DataLoader
 from models.alexnet import AlexNet, AlexNetSmall
 from models.vgg import VGG11, VGG13, VGG16, VGG19
 from models.resnet import ResNet18, ResNet34, ResNet50
+from models.resnetv2 import ResNet18V2, ResNet34V2, ResNet50V2
 from models.efficientnet import EfficientNetSmall, EfficientNetB1
 from training.trainer import Trainer, ExperimentTracker
 from evaluation.visualization import Visualizer
@@ -49,6 +50,9 @@ class ExperimentRunner:
             'resnet18': ResNet18,
             'resnet34': ResNet34,
             'resnet50': ResNet50,
+            'resnet18v2': ResNet18V2,
+            'resnet34v2': ResNet34V2,
+            'resnet50v2': ResNet50V2,
             'efficientnet_small': EfficientNetSmall,
             'efficientnetb1': EfficientNetB1
         }
